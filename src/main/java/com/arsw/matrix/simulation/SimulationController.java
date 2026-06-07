@@ -5,49 +5,47 @@ import com.arsw.matrix.model.GameResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CyclicBarrier;
 
 public class SimulationController {
 
     private final GameBoard board;
-    private final int stepDelayMs;
-    private final int renderDelayMs;
+    private final int roundDelayMs;
 
-    public SimulationController(GameBoard board, int stepDelayMs, int renderDelayMs) {
+    public SimulationController(GameBoard board, int roundDelayMs) {
         this.board = board;
-        this.stepDelayMs = stepDelayMs;
-        this.renderDelayMs = renderDelayMs;
+        this.roundDelayMs = roundDelayMs;
     }
 
     public void start() throws InterruptedException {
         int agentCount = board.getAgentPositions().size();
+        int totalActors = agentCount + 1;
 
-        NeoThread neo = new NeoThread(board, stepDelayMs);
+        Runnable barrierAction = () -> {
+            if (board.isGameOver()) return;
+            System.out.print("\033[H\033[2J");
+            System.out.flush();
+            System.out.println("=== LA MATRIX ===");
+            System.out.println(board.render());
+            try {
+                Thread.sleep(roundDelayMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        };
+
+        CyclicBarrier barrier = new CyclicBarrier(totalActors, barrierAction);
+
+        NeoThread neo = new NeoThread(board, barrier);
         List<AgentThread> agents = new ArrayList<>();
         for (int i = 0; i < agentCount; i++) {
-            agents.add(new AgentThread(board, i, stepDelayMs));
+            agents.add(new AgentThread(board, i, barrier));
         }
 
-        // render de los Threats
-        Thread renderer = new Thread(() -> {
-            while (!board.isGameOver()) {
-                System.out.print("\033[H\033[2J");
-                System.out.flush();
-                System.out.println("=== LA MATRIX ===");
-                System.out.println(board.render());
-                try {
-                    Thread.sleep(renderDelayMs);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }, "Renderer");
-        renderer.setDaemon(true);
-
-        System.out.println("Iniciando la simulacion...\n");
+        System.out.println("=== LA MATRIX ===");
         System.out.println(board.render());
         Thread.sleep(1000);
 
-        renderer.start();
         neo.start();
         for (AgentThread agent : agents) {
             agent.start();

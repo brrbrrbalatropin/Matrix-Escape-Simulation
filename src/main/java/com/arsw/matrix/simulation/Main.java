@@ -24,19 +24,16 @@ public class Main {
         };
         for (int[] w : walls) board.placeWall(w[0], w[1]);
 
-        //telefonos
         board.placePhone(2, 17);
         board.placePhone(9, 1);
 
-        // Neo
         board.placeNeo(5, 10);
 
-        // Agentes
         board.addAgent(2, 2);
         board.addAgent(8, 16);
         board.addAgent(1, 14);
 
-        SimulationController controller = new SimulationController(board, 300, 200);
+        SimulationController controller = new SimulationController(board, 400);
         controller.start();
     }
 }
