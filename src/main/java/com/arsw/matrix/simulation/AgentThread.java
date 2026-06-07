@@ -7,44 +7,39 @@ import com.arsw.matrix.model.Position;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
-/**
- * Each Agent runs as an independent thread.
- * Every step it recalculates the shortest BFS path toward Neo's current position.
- *
- * The CyclicBarrier ensures all actors start each round simultaneously,
- * but the race to write on the GameBoard is still non-deterministic.
- */
 public class AgentThread extends Thread {
 
     private final GameBoard board;
     private final int agentIndex;
-    private final CyclicBarrier barrier;
+    private final CyclicBarrier calculateBarrier;
+    private final CyclicBarrier moveBarrier;
 
-    public AgentThread(GameBoard board, int agentIndex, CyclicBarrier barrier) {
+    public AgentThread(GameBoard board, int agentIndex,
+                       CyclicBarrier calculateBarrier, CyclicBarrier moveBarrier) {
         super("Agent-" + agentIndex);
         this.board = board;
         this.agentIndex = agentIndex;
-        this.barrier = barrier;
+        this.calculateBarrier = calculateBarrier;
+        this.moveBarrier = moveBarrier;
     }
 
     @Override
     public void run() {
-        System.out.println("[Agent-" + agentIndex + "] Cazando a Neo...");
+        System.out.println("[Agent-" + agentIndex + "] Online. Hunting Neo...");
 
         while (!board.isGameOver()) {
+            Position agentPos = board.getAgentPositions().get(agentIndex);
+            Position neoPos = board.getNeoPosition();
+            Position next = Pathfinder.nextStepToward(board, agentPos, neoPos);
+
             try {
-                barrier.await();
+                calculateBarrier.await();
             } catch (InterruptedException | BrokenBarrierException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
 
             if (board.isGameOver()) break;
-
-            Position agentPos = board.getAgentPositions().get(agentIndex);
-            Position neoPos = board.getNeoPosition();
-
-            Position next = Pathfinder.nextStepToward(board, agentPos, neoPos);
 
             if (next != null) {
                 boolean moved = board.moveAgent(agentIndex, next);
@@ -53,6 +48,13 @@ public class AgentThread extends Thread {
                 }
             } else {
                 System.out.println("[Agent-" + agentIndex + "] no hay camino hacia Neo, esperando...");
+            }
+
+            try {
+                moveBarrier.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                Thread.currentThread().interrupt();
+                break;
             }
         }
 

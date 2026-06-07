@@ -8,8 +8,8 @@ import java.util.*;
 public class Pathfinder {
 
     private static final int[][] DIRECTIONS = {
-        {-1,  0}, {-1,  1}, { 0,  1}, { 1,  1},
-        { 1,  0}, { 1, -1}, { 0, -1}, {-1, -1}
+            {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+            {1, 0}, {1, -1}, {0, -1}, {-1, -1}
     };
 
     public static Position nextStepToward(GameBoard board, Position start, Position goal) {

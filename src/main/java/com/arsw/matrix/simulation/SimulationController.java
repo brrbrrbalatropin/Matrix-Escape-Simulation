@@ -21,7 +21,9 @@ public class SimulationController {
         int agentCount = board.getAgentPositions().size();
         int totalActors = agentCount + 1;
 
-        Runnable barrierAction = () -> {
+        CyclicBarrier calculateBarrier = new CyclicBarrier(totalActors);
+
+        Runnable renderAction = () -> {
             if (board.isGameOver()) return;
             System.out.print("\033[H\033[2J");
             System.out.flush();
@@ -33,13 +35,12 @@ public class SimulationController {
                 Thread.currentThread().interrupt();
             }
         };
+        CyclicBarrier moveBarrier = new CyclicBarrier(totalActors, renderAction);
 
-        CyclicBarrier barrier = new CyclicBarrier(totalActors, barrierAction);
-
-        NeoThread neo = new NeoThread(board, barrier);
+        NeoThread neo = new NeoThread(board, calculateBarrier, moveBarrier);
         List<AgentThread> agents = new ArrayList<>();
         for (int i = 0; i < agentCount; i++) {
-            agents.add(new AgentThread(board, i, barrier));
+            agents.add(new AgentThread(board, i, calculateBarrier, moveBarrier));
         }
 
         System.out.println("=== LA MATRIX ===");
